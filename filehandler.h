@@ -21,8 +21,8 @@ private:
     void searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile);
     void findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles);
     bool fileContainsName(const QString &filename, const QString &name);
-    void copyFile(const QString &filePath);
-    void moveFile(const QString &filePath);
+    void copyFile(const QString &filePath, const QString &copyPath);
+    void moveFile(const QString &filePath, const QString &movePath);
     void printUsage();
 
     QString m_copyPath;

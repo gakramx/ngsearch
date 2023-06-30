@@ -8,7 +8,8 @@ FileHandler::FileHandler(QObject *parent)
 
 void FileHandler::run(const QStringList &arguments)
 {
-    if (arguments.size() < 5) {
+
+    if (arguments.size() < 4) {
         printUsage();
         return;
     }
@@ -19,7 +20,7 @@ void FileHandler::run(const QStringList &arguments)
     // Parse the command line arguments
     for (int i = 1; i < arguments.size(); i += 2) {
         QString arg = arguments.at(i);
-        QString value = arguments.at(i + 1);
+        QString value = arguments.value(i + 1);
 
         if (arg == "-s") {
             sourceFile = value;
@@ -27,11 +28,25 @@ void FileHandler::run(const QStringList &arguments)
             distanceFolder = value;
         } else if (arg == "-c") {
             if (value != "-m") {
-                m_copyPath = value;
+                if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
+                    m_copyPath = arguments.at(i + 1);
+                    ++i;
+                } else {
+                    m_copyPath = QFileInfo(sourceFile).absolutePath();
+                }
+            } else {
+                m_movePath.clear(); // Clear move path if -m is provided
             }
         } else if (arg == "-m") {
             if (value != "-c") {
-                m_movePath = value;
+                if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
+                    m_movePath = arguments.at(i + 1);
+                    ++i;
+                } else {
+                    m_movePath = QFileInfo(sourceFile).absolutePath();
+                }
+            } else {
+                m_copyPath.clear(); // Clear copy path if -c is provided
             }
         }
     }
@@ -90,11 +105,11 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
             qInfo() << "Found in:" << file;
 
             if (!copyPath.isEmpty()) {
-                copyFile(file);
+                copyFile(file, copyPath);
             }
 
             if (!movePath.isEmpty()) {
-                moveFile(file);
+                moveFile(file, movePath);
             }
         }
     }
@@ -138,30 +153,30 @@ bool FileHandler::fileContainsName(const QString &filename, const QString &name)
     return false;
 }
 
-void FileHandler::copyFile(const QString &filePath)
+void FileHandler::copyFile(const QString &filePath, const QString &copyPath)
 {
     QFileInfo fileInfo(filePath);
     QString destinationPath;
 
-    if (m_copyPath.endsWith('/') || m_copyPath.endsWith('\\')) {
-        destinationPath = m_copyPath + fileInfo.fileName();
+    if (copyPath.endsWith('/') || copyPath.endsWith('\\')) {
+        destinationPath = copyPath + fileInfo.fileName();
     } else {
-        QDir dir(m_copyPath);
+        QDir dir(copyPath);
         destinationPath = dir.filePath(fileInfo.fileName());
     }
 
     QFile::copy(filePath, destinationPath);
 }
 
-void FileHandler::moveFile(const QString &filePath)
+void FileHandler::moveFile(const QString &filePath, const QString &movePath)
 {
     QFileInfo fileInfo(filePath);
     QString destinationPath;
 
-    if (m_movePath.endsWith('/') || m_movePath.endsWith('\\')) {
-        destinationPath = m_movePath + fileInfo.fileName();
+    if (movePath.endsWith('/') || movePath.endsWith('\\')) {
+        destinationPath = movePath + fileInfo.fileName();
     } else {
-        QDir dir(m_movePath);
+        QDir dir(movePath);
         destinationPath = dir.filePath(fileInfo.fileName());
     }
 
