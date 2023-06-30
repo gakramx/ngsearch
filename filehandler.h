@@ -8,6 +8,7 @@
 #include <QDir>
 #include <QTextStream>
 #include <QDebug>
+
 class FileHandler : public QObject
 {
     Q_OBJECT
@@ -15,17 +16,17 @@ public:
     explicit FileHandler(QObject *parent = nullptr);
     void run(const QStringList &arguments);
 
-signals:
-
 private:
     QStringList readSourceFile(const QString &filename);
-    void searchFiles(const QString &name, const QString &folder);
+    void searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile);
     void findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles);
     bool fileContainsName(const QString &filename, const QString &name);
+    void copyFile(const QString &filePath);
+    void moveFile(const QString &filePath);
     void printUsage();
 
-
-
+    QString m_copyPath;
+    QString m_movePath;
 };
 
 #endif // FILEHANDLER_H
