@@ -1,6 +1,6 @@
 #include "filehandler.h"
 #include <QCoreApplication>
- #include <QRegularExpression>
+#include <QRegularExpression>
 FileHandler::FileHandler(QObject *parent)
     : QObject(parent)
 {
@@ -54,7 +54,8 @@ void FileHandler::run(const QStringList &arguments)
 
     if (sourceFile.isEmpty() || distanceFolder.isEmpty()) {
         printUsage();
- emit finished();
+
+
         return;
     }
 
@@ -63,7 +64,8 @@ void FileHandler::run(const QStringList &arguments)
     for (const QString &name : names) {
         searchFiles(name, distanceFolder, m_copyPath, m_movePath, sourceFile);
     }
- emit finished();
+
+    emit finished();
 }
 
 QStringList FileHandler::readSourceFile(const QString &filename)
@@ -102,10 +104,21 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
 
     QStringList foundFiles;
     findFilesRecursive(dir, fileFilters, foundFiles);
+    QFile source(sourceFile);
+    if (!source.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open source file:" << sourceFile;
+        return;
+    }
+
+    QTextStream sourceIn(&source);
+    QString sourceText = sourceIn.readAll();
+    source.close();
+
+    int count = sourceText.count(name, Qt::CaseInsensitive);
 
     for (const QString &file : foundFiles) {
         if (fileContainsName(file, name)) {
-            qInfo() << "Found " << "\033[32m" <<name<< "\033[0m"<< "In :" << file;
+            qInfo() << "Found " << count << "\033[32m" <<name<< "\033[0m"<< "In :" << file;
 
             if (!copyPath.isEmpty()) {
                 copyFile(file, copyPath);
@@ -191,7 +204,8 @@ void FileHandler::moveFile(const QString &filePath, const QString &movePath)
 
 void FileHandler::printUsage()
 {
-    qDebug() << "Usage: myapp -s source.txt -d /folder/distance/ [-c [copyPath]] [-m [movePath]]";
+    qDebug() << "Usage: ngsearch -s source.txt -d /folder/distance/ [-c [copyPath]] [-m [movePath]]";
     qDebug() << "-c: Copy found files. Optional: copyPath specifies the destination path";
     qDebug() << "-m: Move found files. Optional: movePath specifies the destination path";
+    emit finished();
 }
