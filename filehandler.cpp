@@ -1,5 +1,6 @@
 #include "filehandler.h"
-
+#include <QCoreApplication>
+ #include <QRegularExpression>
 FileHandler::FileHandler(QObject *parent)
     : QObject(parent)
 {
@@ -53,6 +54,7 @@ void FileHandler::run(const QStringList &arguments)
 
     if (sourceFile.isEmpty() || distanceFolder.isEmpty()) {
         printUsage();
+ emit finished();
         return;
     }
 
@@ -61,6 +63,7 @@ void FileHandler::run(const QStringList &arguments)
     for (const QString &name : names) {
         searchFiles(name, distanceFolder, m_copyPath, m_movePath, sourceFile);
     }
+ emit finished();
 }
 
 QStringList FileHandler::readSourceFile(const QString &filename)
@@ -102,7 +105,7 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
 
     for (const QString &file : foundFiles) {
         if (fileContainsName(file, name)) {
-            qInfo() << "Found in:" << file;
+            qInfo() << "Found " << "\033[32m" <<name<< "\033[0m"<< "In :" << file;
 
             if (!copyPath.isEmpty()) {
                 copyFile(file, copyPath);
@@ -143,11 +146,14 @@ bool FileHandler::fileContainsName(const QString &filename, const QString &name)
 
     while (!in.atEnd()) {
         QString line = in.readLine();
-        if (line.contains(name, Qt::CaseInsensitive)) {
+        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(name)), QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch match = re.match(line);
+        if (match.hasMatch()) {
             file.close();
             return true;
         }
     }
+
 
     file.close();
     return false;

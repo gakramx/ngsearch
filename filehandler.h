@@ -15,7 +15,8 @@ class FileHandler : public QObject
 public:
     explicit FileHandler(QObject *parent = nullptr);
     void run(const QStringList &arguments);
-
+signals:
+     void finished();
 private:
     QStringList readSourceFile(const QString &filename);
     void searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile);
