@@ -62,7 +62,9 @@ void FileHandler::run(const QStringList &arguments)
     QStringList names = readSourceFile(sourceFile);
 
     for (const QString &name : names) {
-        searchFiles(name, distanceFolder, m_copyPath, m_movePath, sourceFile);
+        //searchFiles(name, distanceFolder, m_copyPath, m_movePath, sourceFile);
+        searchFileNames(name, distanceFolder);
+
     }
 
     emit finished();
@@ -130,7 +132,48 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
         }
     }
 }
+void FileHandler::searchFileNames(const QString &name, const QString &folder){
+    QDir dir(folder);
+  //  qDebug() << "Work";
 
+    if (!dir.exists()) {
+        qWarning() << "Distance folder does not exist:" << folder;
+        return;
+    }
+
+    QStringList fileFilters;
+    fileFilters << "*";
+
+    QStringList foundFiles;
+    findFilesRecursive(dir, fileFilters, foundFiles);
+
+    for (const QString &file : foundFiles) {
+        QString fileName = QFileInfo(file).fileName();
+
+        // Remove quotes, parentheses, and other special characters from the name
+        QString cleanedName = name;
+        cleanedName.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
+
+        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedName)), QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch match = re.match(fileName);
+        if (match.hasMatch()) {
+            QString cleanFileName = fileName;
+            cleanFileName.remove(QRegularExpression("[\"\\\\]")); // Remove backslashes
+
+            qInfo() << "Found file name" << "\033[32m" << cleanFileName << "\033[0m" << "in:" << file;
+
+            if (!m_copyPath.isEmpty()) {
+                copyFile(file, m_copyPath);
+            }
+
+            if (!m_movePath.isEmpty()) {
+                moveFile(file, m_movePath);
+            }
+        }
+    }
+
+
+}
 void FileHandler::findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles)
 {
     QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files);
