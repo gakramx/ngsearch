@@ -9,7 +9,6 @@ FileHandler::FileHandler(QObject *parent)
 
 void FileHandler::run(const QStringList &arguments)
 {
-
     if (arguments.size() < 4) {
         printUsage();
         return;
@@ -23,12 +22,12 @@ void FileHandler::run(const QStringList &arguments)
         QString arg = arguments.at(i);
         QString value = arguments.value(i + 1);
 
-        if (arg == "-s") {
+        if (arg == "--source-file") {
             sourceFile = value;
-        } else if (arg == "-d") {
+        } else if (arg == "--search-folder") {
             distanceFolder = value;
-        } else if (arg == "-c") {
-            if (value != "-m") {
+        } else if (arg == "--copy") {
+            if (value != "--move") {
                 if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
                     m_copyPath = arguments.at(i + 1);
                     ++i;
@@ -36,10 +35,10 @@ void FileHandler::run(const QStringList &arguments)
                     m_copyPath = QFileInfo(sourceFile).absolutePath();
                 }
             } else {
-                m_movePath.clear(); // Clear move path if -m is provided
+                m_movePath.clear(); // Clear move path if --move is provided
             }
-        } else if (arg == "-m") {
-            if (value != "-c") {
+        } else if (arg == "--move") {
+            if (value != "--copy") {
                 if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
                     m_movePath = arguments.at(i + 1);
                     ++i;
@@ -47,28 +46,25 @@ void FileHandler::run(const QStringList &arguments)
                     m_movePath = QFileInfo(sourceFile).absolutePath();
                 }
             } else {
-                m_copyPath.clear(); // Clear copy path if -c is provided
+                m_copyPath.clear(); // Clear copy path if --copy is provided
             }
         }
     }
 
     if (sourceFile.isEmpty() || distanceFolder.isEmpty()) {
         printUsage();
-
-
         return;
     }
 
     QStringList names = readSourceFile(sourceFile);
 
     for (const QString &name : names) {
-        //searchFiles(name, distanceFolder, m_copyPath, m_movePath, sourceFile);
         searchFileNames(name, distanceFolder);
-
     }
 
     emit finished();
 }
+
 
 QStringList FileHandler::readSourceFile(const QString &filename)
 {
