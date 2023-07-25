@@ -1,6 +1,7 @@
 #include "filehandler.h"
 #include <QCoreApplication>
 #include <QRegularExpression>
+#include <QFileInfo>
 FileHandler::FileHandler(QObject *parent)
     : QObject(parent)
 {
@@ -9,57 +10,85 @@ FileHandler::FileHandler(QObject *parent)
 
 void FileHandler::run(const QStringList &arguments)
 {
-    if (arguments.size() < 4) {
-        printUsage();
+    QCommandLineParser parser;
+    parser.setApplicationDescription("File Handler Application");
+    parser.addHelpOption();
+
+    // Add options
+    // Add options with the correct names
+    QCommandLineOption sourceOption("txt", "Specify the text file", "sourceFile");
+    parser.addOption(sourceOption);
+
+    QCommandLineOption searchOption("source", "Specify the source folder", "sourceFolder");
+    parser.addOption(searchOption);
+
+    QCommandLineOption copyOption("cp", "Copy files to the specified path", "copyPath");
+    parser.addOption(copyOption);
+
+    QCommandLineOption moveOption("mv", "Move files to the specified path", "movePath");
+    parser.addOption(moveOption);
+
+    QCommandLineOption overwriteOption("ow", "Overwrite if the file already exists2");
+    parser.addOption(overwriteOption);
+
+    QCommandLineOption renameOption("re", "Rename if the file already exists");
+    parser.addOption(renameOption);
+    if (arguments.isEmpty()) {
+
+        qDebug() << "No arguments provided.";
+        parser.showHelp(1);
+        emit finished();
         return;
     }
 
-    QString sourceFile;
-    QString distanceFolder;
+    // Process the command-line arguments
+    if (!parser.parse(arguments)) {
+        qDebug() << "Failed to parse arguments:" << parser.errorText();
+        parser.showHelp(1);
+        emit finished();
+        return;
+    }
+    // Add debug outputs to check the parsed values
+    qDebug() << "Parsed arguments:" << arguments;
+    qDebug() << "Source option:" << parser.value("txt");
+    qDebug() << "Search option:" << parser.value("source");
+    qDebug() << "Copy option:" << parser.value("cp");
+    qDebug() << "Move option:" << parser.value("mv");
+    qDebug() << "Overwrite option:" << parser.isSet("ow");
+    qDebug() << "Rename option:" << parser.isSet("re");
 
-    // Parse the command line arguments
-    for (int i = 1; i < arguments.size(); i += 2) {
-        QString arg = arguments.at(i);
-        QString value = arguments.value(i + 1);
 
-        if (arg == "--source-file") {
-            sourceFile = value;
-        } else if (arg == "--search-folder") {
-            distanceFolder = value;
-        } else if (arg == "--copy") {
-            if (value != "--move") {
-                if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
-                    m_copyPath = arguments.at(i + 1);
-                    ++i;
-                } else {
-                    m_copyPath = QFileInfo(sourceFile).absolutePath();
-                }
-            } else {
-                m_movePath.clear(); // Clear move path if --move is provided
-            }
-        } else if (arg == "--move") {
-            if (value != "--copy") {
-                if (i + 1 < arguments.size() && !arguments.at(i + 1).startsWith("-")) {
-                    m_movePath = arguments.at(i + 1);
-                    ++i;
-                } else {
-                    m_movePath = QFileInfo(sourceFile).absolutePath();
-                }
-            } else {
-                m_copyPath.clear(); // Clear copy path if --copy is provided
-            }
-        }
+    QString sourceFile = parser.value(sourceOption);
+    QString distanceFolder = parser.value(searchOption);
+    m_copyPath = parser.value(copyOption);
+    m_movePath = parser.value(moveOption);
+
+    bool overwrite = parser.isSet(overwriteOption);
+    bool rename = parser.isSet(renameOption);
+    if(overwrite==false&&rename==false){
+        parser.showHelp(1);
+        emit finished();
+        return;
     }
 
+    // Check if required options are provided
     if (sourceFile.isEmpty() || distanceFolder.isEmpty()) {
-        printUsage();
+        parser.showHelp(1);
+        emit finished();
+        return;
+    }
+
+    // Set default copy and move paths if necessary
+    if (m_copyPath.isEmpty() && m_movePath.isEmpty()) {
+        parser.showHelp(1);
+        emit finished();
         return;
     }
 
     QStringList names = readSourceFile(sourceFile);
 
     for (const QString &name : names) {
-        searchFileNames(name, distanceFolder);
+        searchFileNames(name, distanceFolder, overwrite, rename);
     }
 
     emit finished();
@@ -88,7 +117,7 @@ QStringList FileHandler::readSourceFile(const QString &filename)
     return names;
 }
 
-void FileHandler::searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile)
+void FileHandler::searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile , bool overwrite, bool rename)
 {
     QDir dir(folder);
 
@@ -119,18 +148,18 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
             qInfo() << "Found " << count << "\033[32m" <<name<< "\033[0m"<< "In :" << file;
 
             if (!copyPath.isEmpty()) {
-                copyFile(file, copyPath);
+                copyFile(file, copyPath, overwrite, rename);
             }
 
             if (!movePath.isEmpty()) {
-                moveFile(file, movePath);
+                moveFile(file, movePath, overwrite, rename);
             }
         }
     }
 }
-void FileHandler::searchFileNames(const QString &name, const QString &folder){
+void FileHandler::searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename){
     QDir dir(folder);
-  //  qDebug() << "Work";
+    //  qDebug() << "Work";
 
     if (!dir.exists()) {
         qWarning() << "Distance folder does not exist:" << folder;
@@ -159,15 +188,14 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder){
             qInfo() << "Found file name" << "\033[32m" << cleanFileName << "\033[0m" << "in:" << file;
 
             if (!m_copyPath.isEmpty()) {
-                copyFile(file, m_copyPath);
+                copyFile(file, m_copyPath, overwrite, rename);
             }
 
             if (!m_movePath.isEmpty()) {
-                moveFile(file, m_movePath);
+                moveFile(file, m_movePath, overwrite, rename);
             }
         }
     }
-
 
 }
 void FileHandler::findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles)
@@ -211,11 +239,11 @@ bool FileHandler::fileContainsName(const QString &filename, const QString &name)
     return false;
 }
 
-void FileHandler::copyFile(const QString &filePath, const QString &copyPath)
+void FileHandler::copyFile(const QString &filePath, const QString &copyPath, bool overwrite, bool rename)
 {
     QFileInfo fileInfo(filePath);
     QString destinationPath;
-
+    qDebug()<<"Works";
     if (copyPath.endsWith('/') || copyPath.endsWith('\\')) {
         destinationPath = copyPath + fileInfo.fileName();
     } else {
@@ -223,10 +251,38 @@ void FileHandler::copyFile(const QString &filePath, const QString &copyPath)
         destinationPath = dir.filePath(fileInfo.fileName());
     }
 
+    if (!overwrite && !rename) {
+        qDebug()<<"Noo";
+        // Don't perform any additional actions, simply copy the file
+        QFile::copy(filePath, destinationPath);
+        return;
+    }
+
+    if (overwrite && QFile::exists(destinationPath)) {
+        qDebug()<<"overwrite";
+        // Delete the existing file before copying
+        QFile::remove(destinationPath);
+    }
+
+    if (rename) {
+        qDebug()<<"rename";
+        // Check if the destination file already exists
+        int suffix = 1;
+        QString baseName = fileInfo.baseName();
+        QString suffixStr;
+
+        while (QFile::exists(destinationPath)) {
+            suffixStr = QString("_%1").arg(suffix);
+            destinationPath = copyPath + baseName + suffixStr + "." + fileInfo.suffix();
+            suffix++;
+        }
+    }
+
+    // Copy the file to the destination
     QFile::copy(filePath, destinationPath);
 }
 
-void FileHandler::moveFile(const QString &filePath, const QString &movePath)
+void FileHandler::moveFile(const QString &filePath, const QString &movePath, bool overwrite, bool rename)
 {
     QFileInfo fileInfo(filePath);
     QString destinationPath;
@@ -238,13 +294,40 @@ void FileHandler::moveFile(const QString &filePath, const QString &movePath)
         destinationPath = dir.filePath(fileInfo.fileName());
     }
 
+    if (!overwrite && !rename) {
+        // Don't perform any additional actions, simply move the file
+        QFile::rename(filePath, destinationPath);
+        return;
+    }
+
+    if (overwrite && QFile::exists(destinationPath)) {
+        // Delete the existing file before moving
+        QFile::remove(destinationPath);
+    }
+
+    if (rename) {
+        // Check if the destination file already exists
+        int suffix = 1;
+        QString baseName = fileInfo.baseName();
+        QString suffixStr;
+
+        while (QFile::exists(destinationPath)) {
+            suffixStr = QString("_%1").arg(suffix);
+            destinationPath = movePath + baseName + suffixStr + "." + fileInfo.suffix();
+            suffix++;
+        }
+    }
+
+    // Move the file to the destination
     QFile::rename(filePath, destinationPath);
 }
 
 void FileHandler::printUsage()
 {
-    qDebug() << "Usage: ngsearch -s source.txt -d /folder/distance/ [-c [copyPath]] [-m [movePath]]";
-    qDebug() << "-c: Copy found files. Optional: copyPath specifies the destination path";
-    qDebug() << "-m: Move found files. Optional: movePath specifies the destination path";
+    qDebug() << "Usage: ngsearch --source-file source.txt --search-folder /folder/distance/ [--copy [copyPath]] [--move [movePath]] [-o] [-r]";
+    qDebug() << "--copy: Copy found files. Optional: copyPath specifies the destination path";
+    qDebug() << "--move: Move found files. Optional: movePath specifies the destination path";
+    qDebug() << "-o: Overwrite existing files when copying/moving";
+    qDebug() << "-r: Rename files with a suffix if destination file already exists";
     emit finished();
 }
