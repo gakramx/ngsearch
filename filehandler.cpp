@@ -158,8 +158,8 @@ void FileHandler::searchFiles(const QString &name, const QString &folder, const 
     }
 }
 void FileHandler::searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename){
+
     QDir dir(folder);
-    //  qDebug() << "Work";
 
     if (!dir.exists()) {
         qWarning() << "Distance folder does not exist:" << folder;
@@ -172,20 +172,37 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
     QStringList foundFiles;
     findFilesRecursive(dir, fileFilters, foundFiles);
 
-    for (const QString &file : foundFiles) {
-        QString fileName = QFileInfo(file).fileName();
+    QStringList patterns;
+    QStringList normalWords;
 
-        // Remove quotes, parentheses, and other special characters from the name
-        QString cleanedName = name;
-        cleanedName.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
+    if (name.contains(',')) {
+        patterns = name.split(',', Qt::SkipEmptyParts);
+    } else {
+        normalWords.append(name);
+    }
 
-        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedName)), QRegularExpression::CaseInsensitiveOption);
-        QRegularExpressionMatch match = re.match(fileName);
-        if (match.hasMatch()) {
-            QString cleanFileName = fileName;
-            cleanFileName.remove(QRegularExpression("[\"\\\\]")); // Remove backslashes
+    for (const QString &pattern : patterns) {
+        QStringList patternWords = pattern.split(',', Qt::SkipEmptyParts);
+        QStringList matchingFiles = foundFiles; // Initialize a new list for each pattern
 
-            qInfo() << "Found file name" << "\033[32m" << cleanFileName << "\033[0m" << "in:" << file;
+        for (const QString &word : patternWords) {
+            QString cleanedWord = word.trimmed();
+            cleanedWord.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
+            QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedWord)), QRegularExpression::CaseInsensitiveOption);
+
+            for (const QString &file : foundFiles) {
+                QString fileName = QFileInfo(file).fileName();
+                QRegularExpressionMatch match = re.match(fileName);
+
+                if (!match.hasMatch()) {
+                    matchingFiles.removeAll(file);
+                }
+            }
+        }
+
+        for (const QString &file : matchingFiles) {
+            QString fileName = QFileInfo(file).fileName();
+            qInfo() << "Found file name" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
 
             if (!m_copyPath.isEmpty()) {
                 copyFile(file, m_copyPath, overwrite, rename);
@@ -197,7 +214,38 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
         }
     }
 
+    // Process normal words separately
+    for (const QString &word : normalWords) {
+        QString cleanedWord = word.trimmed();
+        cleanedWord.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
+        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedWord)), QRegularExpression::CaseInsensitiveOption);
+
+        QStringList matchingFiles;
+
+        for (const QString &file : foundFiles) {
+            QString fileName = QFileInfo(file).fileName();
+            QRegularExpressionMatch match = re.match(fileName);
+
+            if (match.hasMatch()) {
+                matchingFiles.append(file);
+            }
+        }
+
+        for (const QString &file : matchingFiles) {
+            QString fileName = QFileInfo(file).fileName();
+            qInfo() << "Found file name" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
+
+            if (!m_copyPath.isEmpty()) {
+                copyFile(file, m_copyPath, overwrite, rename);
+            }
+
+            if (!m_movePath.isEmpty()) {
+                moveFile(file, m_movePath, overwrite, rename);
+            }
+        }
+    }
 }
+
 void FileHandler::findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles)
 {
     QFileInfoList fileList = dir.entryInfoList(filters, QDir::Files);
