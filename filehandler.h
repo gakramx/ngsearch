@@ -19,7 +19,6 @@ signals:
     void finished();
 private:
     QStringList readSourceFile(const QString &filename);
-    void searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile, bool overwrite, bool rename);
     void findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles);
     void searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename);
     bool fileContainsName(const QString &filename, const QString &name);

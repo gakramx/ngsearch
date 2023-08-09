@@ -117,48 +117,7 @@ QStringList FileHandler::readSourceFile(const QString &filename)
     return names;
 }
 
-void FileHandler::searchFiles(const QString &name, const QString &folder, const QString &copyPath, const QString &movePath, const QString &sourceFile , bool overwrite, bool rename)
-{
-    QDir dir(folder);
-
-    if (!dir.exists()) {
-        qWarning() << "Distance folder does not exist:" << folder;
-        return;
-    }
-
-    QStringList fileFilters;
-    fileFilters << "*";
-
-    QStringList foundFiles;
-    findFilesRecursive(dir, fileFilters, foundFiles);
-    QFile source(sourceFile);
-    if (!source.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        qWarning() << "Failed to open source file:" << sourceFile;
-        return;
-    }
-
-    QTextStream sourceIn(&source);
-    QString sourceText = sourceIn.readAll();
-    source.close();
-
-    int count = sourceText.count(name, Qt::CaseInsensitive);
-
-    for (const QString &file : foundFiles) {
-        if (fileContainsName(file, name)) {
-            qInfo() << "Found " << count << "\033[32m" <<name<< "\033[0m"<< "In :" << file;
-
-            if (!copyPath.isEmpty()) {
-                copyFile(file, copyPath, overwrite, rename);
-            }
-
-            if (!movePath.isEmpty()) {
-                moveFile(file, movePath, overwrite, rename);
-            }
-        }
-    }
-}
 void FileHandler::searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename){
-
     QDir dir(folder);
 
     if (!dir.exists()) {
@@ -172,75 +131,54 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
     QStringList foundFiles;
     findFilesRecursive(dir, fileFilters, foundFiles);
 
-    QStringList patterns;
-    QStringList normalWords;
+    QStringList searchTerms = name.split(",", Qt::SkipEmptyParts);
 
-    if (name.contains(',')) {
-        patterns = name.split(',', Qt::SkipEmptyParts);
-    } else {
-        normalWords.append(name);
-    }
-
-    for (const QString &pattern : patterns) {
-        QStringList patternWords = pattern.split(',', Qt::SkipEmptyParts);
-        QStringList matchingFiles = foundFiles; // Initialize a new list for each pattern
-
-        for (const QString &word : patternWords) {
-            QString cleanedWord = word.trimmed();
-            cleanedWord.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
-            QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedWord)), QRegularExpression::CaseInsensitiveOption);
-
-            for (const QString &file : foundFiles) {
-                QString fileName = QFileInfo(file).fileName();
-                QRegularExpressionMatch match = re.match(fileName);
-
-                if (!match.hasMatch()) {
-                    matchingFiles.removeAll(file);
-                }
-            }
-        }
-
-        for (const QString &file : matchingFiles) {
-            QString fileName = QFileInfo(file).fileName();
-            qInfo() << "Found file name" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
-
-            if (!m_copyPath.isEmpty()) {
-                copyFile(file, m_copyPath, overwrite, rename);
-            }
-
-            if (!m_movePath.isEmpty()) {
-                moveFile(file, m_movePath, overwrite, rename);
-            }
-        }
-    }
-
-    // Process normal words separately
-    for (const QString &word : normalWords) {
-        QString cleanedWord = word.trimmed();
-        cleanedWord.remove(QRegularExpression("[\"'\\(\\)\\[\\]\\{\\}]"));
-        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedWord)), QRegularExpression::CaseInsensitiveOption);
-
-        QStringList matchingFiles;
+    if (searchTerms.size() == 1) {
+        // Single word search
+        QString cleanedName = searchTerms.first().trimmed();
+        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedName)), QRegularExpression::CaseInsensitiveOption);
 
         for (const QString &file : foundFiles) {
             QString fileName = QFileInfo(file).fileName();
-            QRegularExpressionMatch match = re.match(fileName);
+            if (re.match(fileName).hasMatch()) {
+                qInfo() << "Found file name" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
 
-            if (match.hasMatch()) {
-                matchingFiles.append(file);
+                if (!m_copyPath.isEmpty()) {
+                    copyFile(file, m_copyPath, overwrite, rename);
+                }
+
+                if (!m_movePath.isEmpty()) {
+                    moveFile(file, m_movePath, overwrite, rename);
+                }
             }
         }
-
-        for (const QString &file : matchingFiles) {
+    } else {
+        // Multiple words separated by commas search
+        for (const QString &file : foundFiles) {
             QString fileName = QFileInfo(file).fileName();
-            qInfo() << "Found file name" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
+            bool allTermsMatched = true;
 
-            if (!m_copyPath.isEmpty()) {
-                copyFile(file, m_copyPath, overwrite, rename);
+            for (const QString &term : searchTerms) {
+                QString cleanedTerm = term.trimmed();
+                QString cleanedFileName = fileName;
+                cleanedFileName.remove(QRegularExpression("[\"\\\\]"));
+
+                if (!cleanedFileName.contains(cleanedTerm, Qt::CaseInsensitive)) {
+                    allTermsMatched = false;
+                    break;
+                }
             }
 
-            if (!m_movePath.isEmpty()) {
-                moveFile(file, m_movePath, overwrite, rename);
+            if (allTermsMatched) {
+                qInfo() << "Found matching file name:" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
+
+                if (!m_copyPath.isEmpty()) {
+                    copyFile(file, m_copyPath, overwrite, rename);
+                }
+
+                if (!m_movePath.isEmpty()) {
+                    moveFile(file, m_movePath, overwrite, rename);
+                }
             }
         }
     }
