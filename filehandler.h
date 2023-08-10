@@ -24,7 +24,6 @@ private:
     bool fileContainsName(const QString &filename, const QString &name);
     void copyFile(const QString &filePath, const QString &copyPath, bool overwrite, bool rename);
     void moveFile(const QString &filePath, const QString &movePath, bool overwrite, bool rename);
-    void printUsage();
 
     QString m_copyPath;
     QString m_movePath;

@@ -11,8 +11,8 @@ FileHandler::FileHandler(QObject *parent)
 void FileHandler::run(const QStringList &arguments)
 {
     QCommandLineParser parser;
-    parser.setApplicationDescription("File Handler Application");
-    parser.addHelpOption();
+    parser.setApplicationDescription("Effortlessly search and manage files and folders based on text file queries");
+   // parser.addHelpOption();
 
     // Add options
     // Add options with the correct names
@@ -49,13 +49,13 @@ void FileHandler::run(const QStringList &arguments)
         return;
     }
     // Add debug outputs to check the parsed values
-    qDebug() << "Parsed arguments:" << arguments;
-    qDebug() << "Source option:" << parser.value("txt");
-    qDebug() << "Search option:" << parser.value("source");
-    qDebug() << "Copy option:" << parser.value("cp");
-    qDebug() << "Move option:" << parser.value("mv");
-    qDebug() << "Overwrite option:" << parser.isSet("ow");
-    qDebug() << "Rename option:" << parser.isSet("re");
+//    qDebug() << "Parsed arguments:" << arguments;
+//    qDebug() << "Source option:" << parser.value("txt");
+//    qDebug() << "Search option:" << parser.value("source");
+//    qDebug() << "Copy option:" << parser.value("cp");
+//    qDebug() << "Move option:" << parser.value("mv");
+//    qDebug() << "Overwrite option:" << parser.isSet("ow");
+//    qDebug() << "Rename option:" << parser.isSet("re");
 
 
     QString sourceFile = parser.value(sourceOption);
@@ -170,7 +170,7 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
             }
 
             if (allTermsMatched) {
-                qInfo() << "Found matching file name:" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
+              //  qInfo() << "Found matching file name:" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
 
                 if (!m_copyPath.isEmpty()) {
                     copyFile(file, m_copyPath, overwrite, rename);
@@ -306,14 +306,4 @@ void FileHandler::moveFile(const QString &filePath, const QString &movePath, boo
 
     // Move the file to the destination
     QFile::rename(filePath, destinationPath);
-}
-
-void FileHandler::printUsage()
-{
-    qDebug() << "Usage: ngsearch --source-file source.txt --search-folder /folder/distance/ [--copy [copyPath]] [--move [movePath]] [-o] [-r]";
-    qDebug() << "--copy: Copy found files. Optional: copyPath specifies the destination path";
-    qDebug() << "--move: Move found files. Optional: movePath specifies the destination path";
-    qDebug() << "-o: Overwrite existing files when copying/moving";
-    qDebug() << "-r: Rename files with a suffix if destination file already exists";
-    emit finished();
 }
