@@ -130,7 +130,7 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
 
     QStringList foundFiles;
     findFilesRecursive(dir, fileFilters, foundFiles);
-
+    QStringList searchTerms;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     searchTerms = name.split(",", Qt::SkipEmptyParts);
 #else
