@@ -21,3 +21,12 @@ install(TARGETS clstool
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+# CPack settings
+set(CPACK_GENERATOR "DEB")
+set(CPACK_PACKAGE_NAME "clstool")
+set(CPACK_PACKAGE_VERSION "1.0.0")
+set(CPACK_PACKAGE_DESCRIPTION "Effortlessly search and manage files and folders based on text file queries")
+set(CPACK_PACKAGE_CONTACT "Akram Abdeslem chaima <aslackw@riseup.net>")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Akram Abdeslem chaima <aslackw@riseup.net>")
+
+include(CPack)
