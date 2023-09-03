@@ -12,7 +12,7 @@ void FileHandler::run(const QStringList &arguments)
 {
     QCommandLineParser parser;
     parser.setApplicationDescription("Effortlessly search and manage files and folders based on text file queries");
-   // parser.addHelpOption();
+    // parser.addHelpOption();
 
     // Add options
     // Add options with the correct names
@@ -49,13 +49,13 @@ void FileHandler::run(const QStringList &arguments)
         return;
     }
     // Add debug outputs to check the parsed values
-//    qDebug() << "Parsed arguments:" << arguments;
-//    qDebug() << "Source option:" << parser.value("txt");
-//    qDebug() << "Search option:" << parser.value("source");
-//    qDebug() << "Copy option:" << parser.value("cp");
-//    qDebug() << "Move option:" << parser.value("mv");
-//    qDebug() << "Overwrite option:" << parser.isSet("ow");
-//    qDebug() << "Rename option:" << parser.isSet("re");
+    //    qDebug() << "Parsed arguments:" << arguments;
+    //    qDebug() << "Source option:" << parser.value("txt");
+    //    qDebug() << "Search option:" << parser.value("source");
+    //    qDebug() << "Copy option:" << parser.value("cp");
+    //    qDebug() << "Move option:" << parser.value("mv");
+    //    qDebug() << "Overwrite option:" << parser.isSet("ow");
+    //    qDebug() << "Rename option:" << parser.isSet("re");
 
 
     QString sourceFile = parser.value(sourceOption);
@@ -131,7 +131,11 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
     QStringList foundFiles;
     findFilesRecursive(dir, fileFilters, foundFiles);
 
-    QStringList searchTerms = name.split(",", Qt::SkipEmptyParts);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    searchTerms = name.split(",", Qt::SkipEmptyParts);
+#else
+    searchTerms = name.split(",", QString::SkipEmptyParts);
+#endif
 
     if (searchTerms.size() == 1) {
         // Single word search
@@ -170,7 +174,7 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
             }
 
             if (allTermsMatched) {
-              //  qInfo() << "Found matching file name:" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
+                //  qInfo() << "Found matching file name:" << "\033[32m" << fileName << "\033[0m" << "in:" << file;
 
                 if (!m_copyPath.isEmpty()) {
                     copyFile(file, m_copyPath, overwrite, rename);
