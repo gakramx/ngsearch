@@ -28,7 +28,7 @@ void FileHandler::run(const QStringList &arguments)
     QCommandLineOption moveOption("mv", "Move files to the specified path", "movePath");
     parser.addOption(moveOption);
 
-    QCommandLineOption overwriteOption("ow", "Overwrite if the file already exists2");
+    QCommandLineOption overwriteOption("ow", "Overwrite if the file already exists");
     parser.addOption(overwriteOption);
 
     QCommandLineOption renameOption("re", "Rename if the file already exists");
