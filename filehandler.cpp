@@ -10,9 +10,10 @@ FileHandler::FileHandler(QObject *parent)
 
 void FileHandler::run(const QStringList &arguments)
 {
+
     QCommandLineParser parser;
     parser.setApplicationDescription("Effortlessly search and manage files and folders based on text file queries.\n"
-                                     "Example : clstool --txt /Path/To/Txtfile --source /Path/To/Txt/Source/Folder/ --mv /Path/To/Destination/Folder/ --re");
+                                     "Example :  clstool --txt /Path/To/Txtfile --source /Path/To/Source/Folder/ --mv /Path/To/Destination/Folder/ --re");
     // parser.addHelpOption();
 
     // Add options
