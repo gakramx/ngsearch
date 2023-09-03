@@ -27,6 +27,7 @@ set(CPACK_PACKAGE_NAME "clstool")
 set(CPACK_PACKAGE_VERSION "1.0.0")
 set(CPACK_PACKAGE_DESCRIPTION "Effortlessly search and manage files and folders based on text file queries")
 set(CPACK_PACKAGE_CONTACT " Make Life Easy Soft <hello@makelifeeasysoft.com>")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "qtbase5-dev (>= 5.0)")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Make Life Easy Soft <https://www.makelifeeasysoft.com/>")
 
 include(CPack)
