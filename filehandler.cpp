@@ -253,21 +253,26 @@ void FileHandler::copyFile(const QString &filePath, const QString &copyPath, boo
         // Delete the existing file before copying
         QFile::remove(destinationPath);
     }
-
     if (rename) {
-        qDebug()<<"rename";
+        qDebug() << "rename";
         // Check if the destination file already exists
         int suffix = 1;
         QString baseName = fileInfo.baseName();
         QString suffixStr;
 
         while (QFile::exists(destinationPath)) {
-            suffixStr = QString("_%1").arg(suffix);
-            destinationPath = copyPath + baseName + suffixStr + "." + fileInfo.suffix();
+            if (fileInfo.suffix().isEmpty()) {
+                // Handle files without an extension
+                suffixStr = QString("_%1").arg(suffix);
+                destinationPath = copyPath + baseName + suffixStr;
+            } else {
+                // Handle files with an extension
+                suffixStr = QString("_%1").arg(suffix);
+                destinationPath = copyPath + baseName + suffixStr + "." + fileInfo.suffix();
+            }
             suffix++;
         }
     }
-
     // Copy the file to the destination
     QFile::copy(filePath, destinationPath);
 }
