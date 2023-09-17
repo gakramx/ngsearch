@@ -20,7 +20,7 @@ signals:
 private:
     QStringList readSourceFile(const QString &filename);
     void findFilesRecursive(const QDir &dir, const QStringList &filters, QStringList &foundFiles);
-    void searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename);
+    void searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename, bool partial);
     bool fileContainsName(const QString &filename, const QString &name);
     void copyFile(const QString &filePath, const QString &copyPath, bool overwrite, bool rename);
     void moveFile(const QString &filePath, const QString &movePath, bool overwrite, bool rename);

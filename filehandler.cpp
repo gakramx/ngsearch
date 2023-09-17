@@ -13,7 +13,11 @@ void FileHandler::run(const QStringList &arguments)
 
     QCommandLineParser parser;
     parser.setApplicationDescription("Effortlessly search and manage files and folders based on text file queries.\n"
-                                     "Example :  clstool --txt /Path/To/Txtfile --source /Path/To/Source/Folder/ --mv /Path/To/Destination/Folder/ --re");
+                                     "Usage Examples:\n "
+                                     "Example line for partial search:\n"
+                                     "  clstool --txt /Path/To/Txtfile --source /Path/To/Source/Folder/ --mv /Path/To/Destination/Folder/ --re --partial\n"
+                                     " Example line for exact search:\n"
+                                     "  clstool --txt /Path/To/Txtfile --source /Path/To/Source/Folder/ --mv /Path/To/Destination/Folder/ --re\n");
     // parser.addHelpOption();
 
     // Add options
@@ -35,6 +39,10 @@ void FileHandler::run(const QStringList &arguments)
 
     QCommandLineOption renameOption("re", "Rename if the file already exists");
     parser.addOption(renameOption);
+
+    QCommandLineOption partialOption("partial", "Perform partial (non-exact) word matching");
+    parser.addOption(partialOption);
+
     if (arguments.isEmpty()) {
 
         qDebug() << "No arguments provided.";
@@ -67,6 +75,7 @@ void FileHandler::run(const QStringList &arguments)
 
     bool overwrite = parser.isSet(overwriteOption);
     bool rename = parser.isSet(renameOption);
+    bool partial = parser.isSet(partialOption);
     if(overwrite==false&&rename==false){
         parser.showHelp(1);
         emit finished();
@@ -90,7 +99,7 @@ void FileHandler::run(const QStringList &arguments)
     QStringList names = readSourceFile(sourceFile);
 
     for (const QString &name : names) {
-        searchFileNames(name, distanceFolder, overwrite, rename);
+        searchFileNames(name, distanceFolder, overwrite, rename, partial);
     }
 
     emit finished();
@@ -119,7 +128,7 @@ QStringList FileHandler::readSourceFile(const QString &filename)
     return names;
 }
 
-void FileHandler::searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename){
+void FileHandler::searchFileNames(const QString &name, const QString &folder, bool overwrite, bool rename, bool partial){
     QDir dir(folder);
 
     if (!dir.exists()) {
@@ -142,7 +151,14 @@ void FileHandler::searchFileNames(const QString &name, const QString &folder, bo
     if (searchTerms.size() == 1) {
         // Single word search
         QString cleanedName = searchTerms.first().trimmed();
-        QRegularExpression re(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedName)), QRegularExpression::CaseInsensitiveOption);
+        QRegularExpression re;
+
+        if (partial)
+            re.setPattern(QString("%1").arg(QRegularExpression::escape(cleanedName)));
+        else
+            re.setPattern(QString("\\b%1\\b").arg(QRegularExpression::escape(cleanedName)));
+
+        re.setPatternOptions(QRegularExpression::CaseInsensitiveOption);
 
         for (const QString &file : foundFiles) {
             QString fileName = QFileInfo(file).fileName();
